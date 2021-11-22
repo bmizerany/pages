@@ -1,0 +1,9 @@
+github.com/google/go-cmp v0.5.6 h1:BKbKCqvP6I+rmFHt06ZmyQtvB8xAkWdhFyr0ZUNZcxQ=
+github.com/google/go-cmp v0.5.6/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
+github.com/yuin/goldmark v1.4.4 h1:zNWRjYUW32G9KirMXYHQHVNFkXvMI7LpgNW2AgYAoIs=
+github.com/yuin/goldmark v1.4.4/go.mod h1:rmuwmfZ0+bvzB24eSC//bk1R1Zp3hM0OXYv/G2LIilg=
+go4.org/mem v0.0.0-20201119185036-c04c5a6ff174 h1:vSug/WNOi2+4jrKdivxayTN/zd8EA1UrStjpWvvo1jk=
+go4.org/mem v0.0.0-20201119185036-c04c5a6ff174/go.mod h1:reUoABIJ9ikfM5sgtSF3Wushcza7+WeD01VB9Lirh3g=
+golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
+tailscale.com v1.18.0 h1:riytbiTTxaglL9an6VrD03xWvPOPN8vD3VOFOvdB3Io=
+tailscale.com v1.18.0/go.mod h1:XzG4o2vtYFkVvmJWPaTGSaOzqlKSRx2WU+aJbrxaVE0=
