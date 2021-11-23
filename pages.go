@@ -187,21 +187,45 @@ func (c Config) execTemplate(layout *template.Template, fsys fs.FS, name string)
 		return nil, err
 	}
 
+	if path.Ext(name) == ".md" {
+		c.Logf("converting markdown in %q to html", name)
+
+		source, err := slurpTmpl(tmpl, "content", c.context())
+		if err != nil {
+			return nil, err
+		}
+
+		var md bytes.Buffer
+		if err := markdown.Convert(source, &md); err != nil {
+			return nil, err
+		}
+
+		_, err = tmpl.New("content").Parse(md.String())
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	var buf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&buf, "_layout.tmpl", c.context()); err != nil {
 		return nil, err
 	}
 
-	if path.Ext(name) == ".md" {
-		c.Logf("converting markdown in %q to html", name)
-		var md bytes.Buffer
-		if err := markdown.Convert(buf.Bytes(), &md); err != nil {
-			return nil, err
-		}
-		return &md, nil
+	return &buf, nil
+}
+
+func slurpTmpl(t *template.Template, name string, data interface{}) ([]byte, error) {
+	tmpl, err := t.Clone()
+	if err != nil {
+		return nil, err
 	}
 
-	return &buf, nil
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, name, data); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 func (c Config) copyData(dstPath string, src io.Reader) error {

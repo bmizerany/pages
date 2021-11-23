@@ -84,19 +84,19 @@ var buildTests = []struct {
 			"index.html":         "<h1 id=\"index\">index</h1>\n",
 		},
 	},
-	// TODO: {
-	// TODO: 	name: "nested layout",
-	// TODO: 	fs: stringFS{
-	// TODO: 		"layout.tmpl":         `it`,
-	// TODO: 		"content/the.tmpl.md": `content`,
-	// TODO: 		"content/layout.tmpl": `this is {{template "content"}}`,
-	// TODO: 		"z.tmpl":              `not what it should be`,
-	// TODO: 	},
-	// TODO: 	want: stringFS{
-	// TODO: 		"content/the/index.html": "this is <p>content</p>\n",
-	// TODO: 		"z/index.html":           "it",
-	// TODO: 	},
-	// TODO: },
+	{
+		name: "nested layout",
+		fs: stringFS{
+			"_layout.tmpl":         `it`,
+			"content/the.tmpl.md":  "# content\n<pre></pre>",
+			"content/_layout.tmpl": `this is {{template "content"}}`,
+			"z.tmpl":               `not what it should be`,
+		},
+		want: stringFS{
+			"content/the/index.html": "this is <h1 id=\"content\">content</h1>\n<pre></pre>",
+			"z/index.html":           "it",
+		},
+	},
 	{
 		name: "traits",
 		fs: stringFS{
