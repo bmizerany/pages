@@ -1,4 +1,4 @@
-module blake.io/pages
+module github.com/bmizerany/pages
 
 go 1.17
 

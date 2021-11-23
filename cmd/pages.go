@@ -4,7 +4,7 @@ import (
 	"flag"
 	"log"
 
-	"blake.io/pages"
+	"github.com/bmizerany/pages"
 )
 
 var (
