@@ -36,9 +36,7 @@ func (c Config) context() Context {
 	return Context{Data: c.Data}
 }
 
-func Run(cfg *Config) error {
-	fsys := os.DirFS(".")
-
+func Run(fsys fs.FS, cfg *Config) error {
 	hasPublic, err := exists(fsys, "public")
 	if err != nil {
 		return err
