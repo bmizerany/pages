@@ -29,20 +29,28 @@ func main() {
 	}
 
 	if *flagPlugin != "" {
-		p, err := plugin.Open(*flagPlugin)
+		pname := *flagPlugin
+
+		p, err := plugin.Open(pname)
 		if err != nil {
 			log.Fatal(err)
 		}
 		funcs, err := p.Lookup("Funcs")
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("%s: Data symbol not found; skipping", pname)
+		} else {
+			fm, ok := funcs.(*map[string]interface{})
+			if !ok {
+				log.Fatalf("%s: Funcs must be map[string]interface{}; got %T", pname, funcs)
+			}
+			cfg.Funcs = *fm
 		}
 		data, err := p.Lookup("Data")
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("%s: Data symbol not found; skipping", pname)
+		} else {
+			cfg.Data = data
 		}
-		cfg.Funcs = *funcs.(*map[string]interface{})
-		cfg.Data = data
 	}
 
 	if *flagRemovePublic {
