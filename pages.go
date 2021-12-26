@@ -3,19 +3,46 @@ package pages
 import (
 	"bytes"
 	"errors"
+	"html/template"
 	"io"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-	"text/template"
 
+	hhtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/yuin/goldmark"
+	highlighting "github.com/yuin/goldmark-highlighting"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
 )
+
+var markdown = goldmark.New(
+	goldmark.WithExtensions(extension.GFM),
+	goldmark.WithExtensions(
+		highlighting.NewHighlighting(
+			highlighting.WithStyle("monokai"),
+			highlighting.WithFormatOptions(
+				hhtml.WithLineNumbers(false),
+			),
+		),
+	),
+	goldmark.WithParserOptions(
+		parser.WithAutoHeadingID(),
+		parser.WithAttribute(),
+	),
+	goldmark.WithRendererOptions(
+		html.WithHardWraps(),
+		html.WithXHTML(),
+		html.WithUnsafe(), // we own the content; all good
+	),
+)
+
+var DefaultMarkdown = func(source []byte, w io.Writer) error {
+	return markdown.Convert(source, w)
+}
 
 func discard(format string, args ...interface{}) {}
 
@@ -30,6 +57,8 @@ type Config struct {
 	Data  interface{}      // User-defined data passed through as .Data to all traits and templates.
 
 	Logf func(format string, args ...interface{})
+
+	Markdown func(source []byte, w io.Writer) error
 }
 
 func (c Config) context() Context {
@@ -37,6 +66,11 @@ func (c Config) context() Context {
 }
 
 func Run(fsys fs.FS, cfg *Config) error {
+	if cfg.Markdown == nil {
+		cfg.Markdown = DefaultMarkdown
+	}
+
+	// TODO(bmizerany): make public dir configurable
 	hasPublic, err := exists(fsys, "public")
 	if err != nil {
 		return err
@@ -46,6 +80,7 @@ func Run(fsys fs.FS, cfg *Config) error {
 		return errors.New("public directory already exists; please backup and/or remove and try again.")
 	}
 
+	// TODO(bmizerany): make pages dir configurable
 	pagesFS, err := fs.Sub(fsys, "pages")
 	if err != nil {
 		return err
@@ -194,7 +229,7 @@ func (c Config) execTemplate(layout *template.Template, fsys fs.FS, name string)
 		}
 
 		var md bytes.Buffer
-		if err := markdown.Convert(source, &md); err != nil {
+		if err := c.Markdown(source, &md); err != nil {
 			return nil, err
 		}
 
@@ -347,19 +382,6 @@ func toIndexPath(dstDir, name string) string {
 	}
 	return dstPath
 }
-
-var markdown = goldmark.New(
-	goldmark.WithExtensions(extension.GFM),
-	goldmark.WithParserOptions(
-		parser.WithAutoHeadingID(),
-		parser.WithAttribute(),
-	),
-	goldmark.WithRendererOptions(
-		html.WithHardWraps(),
-		html.WithXHTML(),
-		html.WithUnsafe(), // we own the content; all good
-	),
-)
 
 func exists(fsys fs.FS, name string) (bool, error) {
 	_, err := fs.Stat(fsys, "public")

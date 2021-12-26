@@ -173,6 +173,7 @@ func TestBuildFS(t *testing.T) {
 					t.Helper()
 					t.Logf(tt.name+": "+format, args...)
 				},
+				Markdown: DefaultMarkdown,
 			}
 			outDir, err := BuildFS(tt.fs.FS(), cfg)
 			if err != nil {
