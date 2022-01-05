@@ -37,7 +37,7 @@ func main() {
 		}
 		funcs, err := p.Lookup("Funcs")
 		if err != nil {
-			log.Printf("%s: Data symbol not found; skipping", pname)
+			log.Printf("%s: Funcs symbol not found; skipping", pname)
 		} else {
 			fm, ok := funcs.(*map[string]interface{})
 			if !ok {
