@@ -29,12 +29,12 @@ var markdown = goldmark.New(
 			),
 		),
 	),
+	goldmark.WithExtensions(extension.GFM),
 	goldmark.WithParserOptions(
 		parser.WithAutoHeadingID(),
 		parser.WithAttribute(),
 	),
 	goldmark.WithRendererOptions(
-		html.WithHardWraps(),
 		html.WithXHTML(),
 		html.WithUnsafe(), // we own the content; all good
 	),
