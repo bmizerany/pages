@@ -1,6 +1,6 @@
 module blake.io/pages
 
-go 1.17
+go 1.18
 
 require (
 	github.com/alecthomas/chroma v0.9.4

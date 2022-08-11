@@ -2,6 +2,7 @@ package pages
 
 import (
 	"fmt"
+	"html/template"
 	"io/fs"
 	"os"
 	"testing"
@@ -12,10 +13,11 @@ import (
 )
 
 var buildTests = []struct {
-	name string
-	fs   stringFS
-	data interface{}
-	want stringFS
+	name  string
+	fs    stringFS
+	data  interface{}
+	funcs template.FuncMap
+	want  stringFS
 }{
 	{
 		name: "none",
@@ -162,13 +164,26 @@ var buildTests = []struct {
 	},
 
 	// TODO(bmizerany):  test with pluginData
+	{
+		name: "func",
+		funcs: map[string]any{
+			"hello": func(s string) string { return "hello, " + s },
+		},
+		fs: stringFS{
+			"a.tmpl": `{{ hello "world" }}`,
+		},
+		want: stringFS{
+			"a/index.html": "hello, world",
+		},
+	},
 }
 
 func TestBuildFS(t *testing.T) {
 	for _, tt := range buildTests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &Config{
-				Data: tt.data,
+				Funcs: tt.funcs,
+				Data:  tt.data,
 				Logf: func(format string, args ...interface{}) {
 					t.Helper()
 					t.Logf(tt.name+": "+format, args...)

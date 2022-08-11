@@ -215,7 +215,7 @@ func (c Config) execTemplate(layout *template.Template, fsys fs.FS, name string)
 		return nil, err
 	}
 
-	_, err = tmpl.New("content").Parse(string(source))
+	_, err = tmpl.New("content").Funcs(c.Funcs).Parse(string(source))
 	if err != nil {
 		return nil, err
 	}
