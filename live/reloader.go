@@ -28,6 +28,22 @@ evs.onerror = function(e) { console.debug('pages: error', e); };
 </html>
 `
 
+// WriteReloadableError is a convenience helper that writes err in a pre tag
+// within body tag to w so that the response is picked up by Reloader.
+//
+// Users that want to customize the error page can build their own HTML, but
+// should be sure a body tag is present.
+func WriteReloadableError(w http.ResponseWriter, err error) {
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusInternalServerError)
+
+	// Return errors as HTML so that the reloader
+	// will pick up the body tag and inject itself,
+	// causing it to reload as fixing happen by the
+	// user.
+	fmt.Fprintf(w, "<body><pre>%s</pre></body>", err)
+}
+
 func Reloader(watchPath string, stderr io.Writer, inner http.Handler) (http.Handler, error) {
 	watch, err := fsnotify.NewWatcher()
 	if err != nil {

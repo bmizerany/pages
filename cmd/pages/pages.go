@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -78,7 +77,8 @@ func main() {
 		h, err := live.Reloader("./pages", os.Stderr, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			os.RemoveAll("./public")
 			if err := pages.Run(fsys, cfg); err != nil {
-				fmt.Fprintf(io.MultiWriter(w, os.Stderr), "pages: %v", err)
+				fmt.Fprintf(os.Stderr, "pages: %v\n", err)
+				live.WriteReloadableError(w, err)
 				return
 			}
 			hfs.ServeHTTP(w, r)
