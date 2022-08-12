@@ -44,19 +44,19 @@ var DefaultMarkdown = func(source []byte, w io.Writer) error {
 	return markdown.Convert(source, w)
 }
 
-func discard(format string, args ...interface{}) {}
+func discard(format string, args ...any) {}
 
 type Context struct {
-	Data interface{}
+	Data any
 
 	// TODO(bmizerany): Root & Page for site maps
 }
 
 type Config struct {
 	Funcs template.FuncMap // User-defined functions passed through to all traits and templates.
-	Data  interface{}      // User-defined data passed through as .Data to all traits and templates.
+	Data  any              // User-defined data passed through as .Data to all traits and templates.
 
-	Logf func(format string, args ...interface{})
+	Logf func(format string, args ...any)
 
 	Markdown func(source []byte, w io.Writer) error
 }
@@ -247,7 +247,7 @@ func (c Config) execTemplate(layout *template.Template, fsys fs.FS, name string)
 	return &buf, nil
 }
 
-func slurpTmpl(t *template.Template, name string, data interface{}) ([]byte, error) {
+func slurpTmpl(t *template.Template, name string, data any) ([]byte, error) {
 	tmpl, err := t.Clone()
 	if err != nil {
 		return nil, err

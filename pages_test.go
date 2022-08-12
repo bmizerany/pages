@@ -15,7 +15,7 @@ import (
 var buildTests = []struct {
 	name  string
 	fs    stringFS
-	data  interface{}
+	data  any
 	funcs template.FuncMap
 	want  stringFS
 }{
@@ -184,7 +184,7 @@ func TestBuildFS(t *testing.T) {
 			cfg := &Config{
 				Funcs: tt.funcs,
 				Data:  tt.data,
-				Logf: func(format string, args ...interface{}) {
+				Logf: func(format string, args ...any) {
 					t.Helper()
 					t.Logf(tt.name+": "+format, args...)
 				},

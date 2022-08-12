@@ -39,7 +39,7 @@ func main() {
 		if err != nil {
 			log.Printf("%s: Funcs symbol not found; skipping", pname)
 		} else {
-			fm, ok := funcs.(*map[string]interface{})
+			fm, ok := funcs.(*map[string]any)
 			if !ok {
 				log.Fatalf("%s: Funcs must be map[string]interface{}; got %T", pname, funcs)
 			}
