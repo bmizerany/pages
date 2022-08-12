@@ -4,13 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"plugin"
 
 	"blake.io/pages"
+	"blake.io/pages/live"
 )
 
 var (
@@ -74,31 +74,22 @@ func main() {
 
 	fsys := os.DirFS(".")
 	if *flagHTTP != "" {
-		log.Fatal(serveLiveReload(*flagHTTP, fsys, cfg))
+		hfs := http.FileServer(http.FS(fsys))
+		h, err := live.Reloader("./pages", os.Stderr, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			os.RemoveAll("./public")
+			if err := pages.Run(fsys, cfg); err != nil {
+				fmt.Fprintf(io.MultiWriter(w, os.Stderr), "pages: %v", err)
+				return
+			}
+			hfs.ServeHTTP(w, r)
+		}))
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Fatal(http.ListenAndServe(*flagHTTP, h))
 	} else {
 		if err := pages.Run(fsys, cfg); err != nil {
 			log.Fatal(err)
 		}
 	}
-
-}
-
-func serveLiveReload(addr string, fsys fs.FS, cfg *pages.Config) error {
-	if addr == "" {
-		addr = "localhost:6060"
-	}
-
-	hfs := http.FileServer(http.FS(fsys))
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		os.RemoveAll("./public")
-
-		if err := pages.Run(fsys, cfg); err != nil {
-			fmt.Fprintf(io.MultiWriter(w, os.Stderr), "pages: %v", err)
-			return
-		}
-
-		hfs.ServeHTTP(w, r)
-	})
-
-	return http.ListenAndServe(addr, h)
 }
