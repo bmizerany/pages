@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"golang.org/x/net/html"
@@ -22,21 +23,23 @@ func Reloader(watchPath string, stderr io.Writer, inner http.Handler) (http.Hand
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		stderr := io.MultiWriter(w, stderr)
-
 		if r.URL.Path == "/_updates" {
-			w.Header().Set("Cache-Control", "no-store")
-			w.Header().Set("Content-Type", "text/event-stream")
-			maybeFlush(w)
-
 			select {
 			case <-watch.Events:
 			case <-r.Context().Done():
 				return
 			}
 
-			io.WriteString(w, "event: update\n")
-			io.WriteString(w, "data: {}\n")
-			io.WriteString(w, "\n\n")
+			io.WriteString(w, `
+				<!DOCTYPE html>
+				<html>
+				<head>
+				<script>
+					window.top.location.reload();
+				</script>
+				</head>
+				</html>
+			`)
 			return
 		} else {
 			ri := &reloadInjector{w: w}
@@ -66,9 +69,16 @@ func (r *reloadInjector) Write(p []byte) (int, error) {
 func (r *reloadInjector) WriteHeader(code int) { r.code = code }
 func (r *reloadInjector) Header() http.Header  { return r.w.Header() }
 
+const iframeHTML = `<iframe src="/_updates" style="display: none"></iframe>`
+
 func (r *reloadInjector) Finish() error {
 	if r.buf == nil {
 		return nil
+	}
+
+	if !isHTML(r.w.Header()) {
+		_, err := r.w.Write(r.buf.Bytes())
+		return err
 	}
 
 	// any content-length header is now invalid; remove and use chunked
@@ -90,7 +100,7 @@ func (r *reloadInjector) Finish() error {
 		if tt == html.EndTagToken {
 			t := z.Token()
 			if t.Data == "body" {
-				_, err := io.WriteString(r.w, "Boom!")
+				_, err := io.WriteString(r.w, iframeHTML)
 				if err != nil {
 					return err
 				}
@@ -107,4 +117,8 @@ func maybeFlush(w http.ResponseWriter) {
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}
+}
+
+func isHTML(r http.Header) bool {
+	return strings.HasPrefix(r.Get("Content-Type"), "text/html")
 }
