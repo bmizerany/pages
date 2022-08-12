@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/fsnotify/fsnotify"
+	"github.com/dietsche/rfsnotify"
 	"golang.org/x/net/html"
 )
 
@@ -31,39 +31,52 @@ evs.onerror = function(e) { console.debug('pages: error', e); };
 //
 // Users that want to customize the error page can build their own HTML, but
 // should be sure a body tag is present.
-func WriteReloadableError(w http.ResponseWriter, err error) {
+func WriteReloadableError(w http.ResponseWriter, code int, err error) {
 	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusInternalServerError)
-
-	// Return errors as HTML so that the reloader
-	// will pick up the body tag and inject itself,
-	// causing it to reload as fixing happen by the
-	// user.
+	w.WriteHeader(code)
 	fmt.Fprintf(w, "<body><pre>%s</pre></body>", err)
 }
 
 func Reloader(watchPath string, stderr io.Writer, inner http.Handler) (http.Handler, error) {
-	watch, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, err
-	}
-
-	if err := watch.Add(watchPath); err != nil {
-		return nil, err
-	}
+	// TODO: change stderr to a logger
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		stderr := io.MultiWriter(w, stderr)
 		switch r.URL.Path {
 		case "/_updates":
+			// TODO: Track update counts and send down with reloaderHTML for it to
+			// round-trip back so that we can determine if another reload is needed
+			// right away. This also allow for a single watcher, instead of one per
+			// request.
+			//
+			// Currently we can miss events that happened after the
+			// page making this request was being served and loaded.
+			// In practice, this is fine because it's somewhat rare
+			// (depending), but could be a little annoying for users
+			// when it does happen. It can be avoided by using the
+			// counter mentioned above along with a single watcher
+			// waking up these update goroutines.
+			watch, err := rfsnotify.NewWatcher()
+			if err != nil {
+				// ask user to manually reload to avoid infinite loop browser -> server -> browser ...
+				http.Error(w, "Error starting watcher. Please fix and reload.", 500)
+				fmt.Fprintf(stderr, "pages: error creating the watcher %s: %v", watchPath, err)
+				return
+			}
+			if err := watch.AddRecursive(watchPath); err != nil {
+				WriteReloadableError(w, 500, err)
+				http.Error(w, "Error watching. Please fix and reload.", 500)
+				fmt.Fprintf(stderr, "pages: error watching %s: %v", watchPath, err)
+				return
+			}
+
 			w.Header().Set("Content-Type", "text/event-stream")
 			w.WriteHeader(http.StatusOK)
 			maybeFlush(w)
 
 			for {
-				// TODO: heartbeat?
 				select {
 				case <-watch.Events:
+					// TODO(bmizerany): check if error event
 					io.WriteString(w, "data: {}\n\n\n")
 					maybeFlush(w)
 				case <-r.Context().Done():
@@ -118,12 +131,13 @@ func (r *reloadInjector) Finish() error {
 		r.w.WriteHeader(r.code)
 	}
 
+	var injected bool
 	z := html.NewTokenizer(r.buf)
 	for {
 		tt := z.Next()
 		if tt == html.ErrorToken {
 			if err := z.Err(); err == io.EOF {
-				return nil
+				break
 			}
 			return z.Err()
 		}
@@ -134,6 +148,7 @@ func (r *reloadInjector) Finish() error {
 				if err != nil {
 					return err
 				}
+				injected = true
 			}
 		}
 		_, err := r.w.Write(z.Raw())
@@ -141,6 +156,13 @@ func (r *reloadInjector) Finish() error {
 			return err
 		}
 	}
+	if !injected {
+		_, err := io.WriteString(r.w, injectHTML)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func maybeFlush(w http.ResponseWriter) {

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"plugin"
+	"sync"
 
 	"blake.io/pages"
 	"blake.io/pages/live"
@@ -73,12 +74,16 @@ func main() {
 
 	fsys := os.DirFS(".")
 	if *flagHTTP != "" {
+		var mu sync.Mutex
 		hfs := http.FileServer(http.FS(fsys))
 		h, err := live.Reloader("./pages", os.Stderr, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			mu.Lock()
+			defer mu.Unlock()
+
 			os.RemoveAll("./public")
 			if err := pages.Run(fsys, cfg); err != nil {
 				fmt.Fprintf(os.Stderr, "pages: %v\n", err)
-				live.WriteReloadableError(w, err)
+				live.WriteReloadableError(w, 500, err)
 				return
 			}
 			hfs.ServeHTTP(w, r)
