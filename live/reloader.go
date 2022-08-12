@@ -123,7 +123,6 @@ func (r *reloadInjector) Finish() error {
 	z := html.NewTokenizer(r.buf)
 	for {
 		tt := z.Next()
-		fmt.Printf("token: %v %s\n", tt, z.Raw())
 		if tt == html.ErrorToken {
 			if err := z.Err(); err == io.EOF {
 				return nil
