@@ -11,9 +11,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-const injectHTML = `
-<iframe src="/_reloader" style="display: none"></iframe>
-`
+const injectHTML = `<iframe src="/_reloader" style="display: none"></iframe>`
 
 const reloaderHTML = `
 <!DOCTYPE html>
