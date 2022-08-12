@@ -11,6 +11,23 @@ import (
 	"golang.org/x/net/html"
 )
 
+const injectHTML = `
+<iframe src="/_reloader" style="display: none"></iframe>
+`
+
+const reloaderHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+var evs = new EventSource('/_updates');
+evs.onmessage = function() { window.top.location.reload(); };
+evs.onerror = function(e) { console.debug('pages: error', e); };
+</script>
+</head>
+</html>
+`
+
 func Reloader(watchPath string, stderr io.Writer, inner http.Handler) (http.Handler, error) {
 	watch, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -23,25 +40,26 @@ func Reloader(watchPath string, stderr io.Writer, inner http.Handler) (http.Hand
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		stderr := io.MultiWriter(w, stderr)
-		if r.URL.Path == "/_updates" {
-			select {
-			case <-watch.Events:
-			case <-r.Context().Done():
-				return
-			}
+		switch r.URL.Path {
+		case "/_updates":
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+			maybeFlush(w)
 
-			io.WriteString(w, `
-				<!DOCTYPE html>
-				<html>
-				<head>
-				<script>
-					window.top.location.reload();
-				</script>
-				</head>
-				</html>
-			`)
-			return
-		} else {
+			for {
+				// TODO: heartbeat?
+				select {
+				case <-watch.Events:
+					io.WriteString(w, "data: {}\n\n\n")
+					maybeFlush(w)
+				case <-r.Context().Done():
+					return
+				}
+			}
+		case "/_reloader":
+			w.Header().Set("Content-Type", "text/html")
+			io.WriteString(w, reloaderHTML)
+		default:
 			ri := &reloadInjector{w: w}
 			inner.ServeHTTP(ri, r)
 			if err := ri.Finish(); err != nil {
@@ -50,6 +68,7 @@ func Reloader(watchPath string, stderr io.Writer, inner http.Handler) (http.Hand
 			}
 		}
 	})
+
 	return h, nil
 }
 
@@ -68,8 +87,6 @@ func (r *reloadInjector) Write(p []byte) (int, error) {
 
 func (r *reloadInjector) WriteHeader(code int) { r.code = code }
 func (r *reloadInjector) Header() http.Header  { return r.w.Header() }
-
-const iframeHTML = `<iframe src="/_updates" style="display: none"></iframe>`
 
 func (r *reloadInjector) Finish() error {
 	if r.buf == nil {
@@ -100,7 +117,7 @@ func (r *reloadInjector) Finish() error {
 		if tt == html.EndTagToken {
 			t := z.Token()
 			if t.Data == "body" {
-				_, err := io.WriteString(r.w, iframeHTML)
+				_, err := io.WriteString(r.w, injectHTML)
 				if err != nil {
 					return err
 				}
