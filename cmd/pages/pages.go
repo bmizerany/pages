@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"plugin"
 	"sync"
 
@@ -73,28 +75,52 @@ func main() {
 	}
 
 	fsys := os.DirFS(".")
+
 	if *flagHTTP != "" {
+		err := os.MkdirAll("public", 0750)
+		if err != nil && !os.IsExist(err) {
+			log.Fatal(err)
+		}
+
+		pub, err := fs.Sub(fsys, "public")
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		var mu sync.Mutex
-		hfs := http.FileServer(http.FS(fsys))
+		hfs := http.FileServer(http.FS(pub))
 		h, err := live.Reloader("./pages", os.Stderr, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			mu.Lock()
 			defer mu.Unlock()
 
 			os.RemoveAll("./public")
+
 			if err := pages.Run(fsys, cfg); err != nil {
 				fmt.Fprintf(os.Stderr, "pages: %v\n", err)
 				live.WriteReloadableError(w, 500, err)
 				return
+			}
+
+			if shouldAddSlash(r) {
+				r = r.Clone(r.Context())
+				r.URL.Path += "/"
 			}
 			hfs.ServeHTTP(w, r)
 		}))
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Fatal(http.ListenAndServe(*flagHTTP, h))
+
+		http.Handle("/", h)
+
+		log.Fatal(http.ListenAndServe(*flagHTTP, nil))
 	} else {
 		if err := pages.Run(fsys, cfg); err != nil {
 			log.Fatal(err)
 		}
 	}
+}
+
+func shouldAddSlash(r *http.Request) bool {
+	return r.URL.Path != "/" && path.Ext(r.URL.Path) == ""
 }
