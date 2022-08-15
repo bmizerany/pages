@@ -120,7 +120,7 @@ func (c Config) buildDir(traits *template.Template, dstDir, srcDir string, fsys 
 	c.Logf("building %s", srcDir)
 
 	if traits == nil {
-		traits = template.New("___traits___")
+		traits = template.New("___traits___").Funcs(c.Funcs)
 	}
 
 	// any new traits we find apply only to us, and our children
@@ -215,7 +215,7 @@ func (c Config) execTemplate(layout *template.Template, fsys fs.FS, name string)
 		return nil, err
 	}
 
-	_, err = tmpl.New("content").Funcs(c.Funcs).Parse(string(source))
+	_, err = tmpl.New("content").Parse(string(source))
 	if err != nil {
 		return nil, err
 	}

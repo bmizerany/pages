@@ -10,6 +10,7 @@ import (
 	"path"
 	"plugin"
 	"sync"
+	"text/template"
 
 	"blake.io/pages"
 	"blake.io/pages/live"
@@ -46,7 +47,7 @@ func main() {
 		if err != nil {
 			log.Printf("%s: Funcs symbol not found; skipping", pname)
 		} else {
-			fm, ok := funcs.(*map[string]any)
+			fm, ok := funcs.(*template.FuncMap)
 			if !ok {
 				log.Fatalf("%s: Funcs must be map[string]any; got %T", pname, funcs)
 			}
