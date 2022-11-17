@@ -62,6 +62,7 @@ func Reloader(watchPath string, stderr io.Writer, inner http.Handler) (http.Hand
 				fmt.Fprintf(stderr, "pages: error creating the watcher %s: %v", watchPath, err)
 				return
 			}
+			defer watch.Close()
 			if err := watch.AddRecursive(watchPath); err != nil {
 				WriteReloadableError(w, 500, err)
 				http.Error(w, "Error watching. Please fix and reload.", 500)
