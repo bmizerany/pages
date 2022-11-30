@@ -40,8 +40,8 @@ var markdown = goldmark.New(
 	),
 )
 
-var DefaultMarkdown = func(source []byte, w io.Writer) error {
-	return markdown.Convert(source, w)
+var DefaultMarkdown = func(dst io.Writer, source []byte) error {
+	return markdown.Convert(source, dst)
 }
 
 func discard(format string, args ...any) {}
@@ -58,7 +58,7 @@ type Config struct {
 
 	Logf func(format string, args ...any)
 
-	Markdown func(source []byte, w io.Writer) error
+	Markdown func(dst io.Writer, source []byte) error
 }
 
 func (c Config) context() Context {
@@ -229,7 +229,7 @@ func (c Config) execTemplate(layout *template.Template, fsys fs.FS, name string)
 		}
 
 		var md bytes.Buffer
-		if err := c.Markdown(source, &md); err != nil {
+		if err := c.Markdown(&md, source); err != nil {
 			return nil, err
 		}
 

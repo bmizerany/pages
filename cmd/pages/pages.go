@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -57,6 +58,16 @@ func main() {
 			log.Printf("%s: Data symbol not found; skipping", pname)
 		} else {
 			cfg.Data = data
+		}
+		md, err := p.Lookup("Markdown")
+		if err != nil {
+			log.Printf("%s: Markdown symbol not found; skipping", pname)
+		} else {
+			f, ok := md.(func(io.Writer, []byte) error)
+			if !ok {
+				log.Fatalf("%s: Markdown must be func(io.Writer, []byte) error string; got %T", pname, md)
+			}
+			cfg.Markdown = f
 		}
 	}
 
