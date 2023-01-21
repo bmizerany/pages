@@ -9,7 +9,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	"kr.dev/diff"
 )
 
 var buildTests = []struct {
@@ -176,6 +176,30 @@ var buildTests = []struct {
 			"a/index.html": "hello, world",
 		},
 	},
+	{
+		name: "func in layout",
+		funcs: map[string]any{
+			"hello": func(s string) string { return "hello, " + s },
+		},
+		fs: stringFS{
+			"_layout.tmpl": `{{ hello "world" }} {{template "content"}}`,
+			"index.tmpl":   `some content`,
+		},
+		want: stringFS{
+			"index.html": "hello, world some content",
+		},
+	},
+	{
+		name: "traits in markdown",
+		fs: stringFS{
+			"_t.tmpl.md": `
+# World`,
+			"index.tmpl.md": `Hello, {{ template "_t.tmpl.md" }}`,
+		},
+		want: stringFS{
+			"index.html": "<p>Hello,</p>\n<h1 id=\"world\">World</h1>\n",
+		},
+	},
 }
 
 func TestBuildFS(t *testing.T) {
@@ -195,9 +219,7 @@ func TestBuildFS(t *testing.T) {
 				t.Fatalf("%s: %v", tt.name, err)
 			}
 			got := os.DirFS(outDir)
-			if diff := diffFS(t, got, tt.want.FS()); diff != "" {
-				t.Errorf("%s: mismatch (-want +got):\n%s", tt.name, diff)
-			}
+			diffFS(t, got, tt.want.FS())
 		})
 	}
 }
@@ -216,7 +238,8 @@ func (sfs stringFS) FS() fs.FS {
 	return mfs
 }
 
-func diffFS(t testing.TB, gotFS, wantFS fs.FS) string {
+func diffFS(t testing.TB, gotFS, wantFS fs.FS) {
+	t.Helper()
 	got := stringFS{}
 	if err := fs.WalkDir(gotFS, ".", addToMapFS(gotFS, got)); err != nil {
 		t.Fatal(err)
@@ -227,7 +250,7 @@ func diffFS(t testing.TB, gotFS, wantFS fs.FS) string {
 		t.Fatal(err)
 	}
 
-	return cmp.Diff(want, got)
+	diff.Test(t, t.Errorf, got, want)
 }
 
 func addToMapFS(fsys fs.FS, sfs stringFS) fs.WalkDirFunc {
