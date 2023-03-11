@@ -176,6 +176,20 @@ var buildTests = []struct {
 			"a/index.html": "hello, world",
 		},
 	},
+
+	{
+		name: "traits same name varying types",
+		fs: stringFS{
+			"_a.tmpl":    `flap`,
+			"_m.tmpl.md": `# flap`,
+			"i.tmpl":     `{{ template "_a.tmpl" }}`,
+			"m.tmpl":     `{{ template "_m.tmpl.md" }}`,
+		},
+		want: stringFS{
+			"i/index.html": "flap",
+			"m/index.html": "<h1 id=\"flap\">flap</h1>\n",
+		},
+	},
 }
 
 func TestBuildFS(t *testing.T) {
