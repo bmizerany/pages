@@ -13,7 +13,7 @@ require (
 	github.com/dietsche/rfsnotify v0.0.0-20200716145600-b37be6e4177f // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/net v0.31.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 )
