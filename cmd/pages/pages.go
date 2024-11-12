@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -10,10 +9,8 @@ import (
 	"os"
 	"path"
 	"plugin"
-	"sync"
 
 	"blake.io/pages"
-	"blake.io/pages/live"
 )
 
 var (
@@ -98,31 +95,11 @@ func main() {
 			log.Fatal(err)
 		}
 
-		var mu sync.Mutex
 		hfs := http.FileServer(http.FS(pub))
-		h, err := live.Reloader("./pages", os.Stderr, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			mu.Lock()
-			defer mu.Unlock()
 
-			os.RemoveAll("./public")
-
-			if err := pages.Run(fsys, cfg); err != nil {
-				fmt.Fprintf(os.Stderr, "pages: %v\n", err)
-				live.WriteReloadableError(w, 500, err)
-				return
-			}
-
-			if shouldAddSlash(r) {
-				r = r.Clone(r.Context())
-				r.URL.Path += "/"
-			}
-			hfs.ServeHTTP(w, r)
-		}))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		http.Handle("/", h)
+		// Use default handler to include other handlers installed via
+		// side-effects, like pprof.
+		http.Handle("/", hfs)
 
 		log.Fatal(http.ListenAndServe(*flagHTTP, nil))
 	} else {
