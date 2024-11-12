@@ -84,12 +84,11 @@ func main() {
 
 	fsys := os.DirFS(".")
 
-	if *flagHTTP != "" {
-		err := os.MkdirAll("public", 0750)
-		if err != nil && !os.IsExist(err) {
-			log.Fatal(err)
-		}
+	if err := pages.Run(fsys, cfg); err != nil {
+		log.Fatal(err)
+	}
 
+	if *flagHTTP != "" {
 		pub, err := fs.Sub(fsys, "public")
 		if err != nil {
 			log.Fatal(err)
@@ -102,10 +101,6 @@ func main() {
 		http.Handle("/", hfs)
 
 		log.Fatal(http.ListenAndServe(*flagHTTP, nil))
-	} else {
-		if err := pages.Run(fsys, cfg); err != nil {
-			log.Fatal(err)
-		}
 	}
 }
 
