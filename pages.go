@@ -384,10 +384,7 @@ func toIndexPath(dstDir, name string) string {
 }
 
 func exists(fsys fs.FS, name string) (bool, error) {
-	_, err := fs.Stat(fsys, "public")
-	if err == nil {
-		return true, nil
-	}
+	_, err := fs.Stat(fsys, name)
 	if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
 	}
