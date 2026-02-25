@@ -1,3 +1,5 @@
+// Package pages is a static site generator that uses Go's html/template
+// package for templating and goldmark for markdown processing.
 package pages
 
 import (
